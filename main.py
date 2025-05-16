@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QTextEdit, QLabel
 )
 from PyQt5.QtCore import pyqtSignal, QObject
-
 import yt_dlp
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials

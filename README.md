@@ -5,25 +5,43 @@
 - Convert the video to **MP3 using FFmpeg**
 - Easily use the app with a **PyQt5 GUI**
 
-
 ## 📦 Features
 
 - PyQt5 GUI interface
+- Concurrent downloads for maximum speed
 - MP3 conversion with FFmpeg
-- Multi-track download support
-- Progress log window
+- Auto-retry on failed downloads
+- Progress tracking per song
 - Spotify API integration
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Clone the repository
+### 1. Requirements
+
+- Python 3.8 or higher
+- FFmpeg installed and in PATH
+- Spotify Developer account
+
+### 2. Installation
 
 ```bash
 git clone https://git.rubenphagura.com/SPOT-PLIST
-cd SPOT-PLIST 
+cd SPOT-PLIST
+pip install -r requirements.txt
 ```
+
+### 3. Configuration
+
+Create a `.env` file in the project root:
+
+```env
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+DEFAULT_DOWNLOAD_DIR=downloads
+```
+
 ## Usage
 
 ### Install FFmpeg
@@ -38,16 +56,6 @@ Linux:
 ```bash
 sudo apt install ffmpeg
 ```
-## Setup Spotify API Credentials
-Create a Spotify Developer app at developer.spotify.com:
-
-Go to Dashboard → Create App
-Get Client ID and Client Secret
-Edit main.py and at the top edit:
-
-SPOTIFY_CLIENT_ID = 'your_spotify_client_id'
-
-SPOTIFY_CLIENT_SECRET = 'your_spotify_client_secret'
 
 ## Run
 

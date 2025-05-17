@@ -46,6 +46,33 @@ NUM_CHUNKS=3  # Optional: Number of parallel chunks
 BATCH_SIZE=5  # Optional: Songs per chunk
 ```
 
+### 4. Spotify Setup
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new application
+3. Copy your Client ID and Client Secret
+4. Paste them in your `.env` file
+
+### Using with Spotify
+
+1. Open the application using `python3 main.py`
+2. Find your Spotify playlist URL:
+   - Open Spotify
+   - Right-click on a playlist
+   - Select "Share" → "Copy link to playlist"
+3. In the application:
+   - Paste the Spotify playlist URL
+   - Choose your desired MP3 quality (128-320kbps)
+   - Select output directory
+   - Click "Download"
+
+The app will:
+- Fetch all tracks from your Spotify playlist
+- Find matching songs on YouTube
+- Download and convert them to MP3
+- Add metadata (title, artist, album)
+- Add thumbnails from YouTube
+
 ### Performance
 
 The downloader processes songs in parallel chunks:

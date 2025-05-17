@@ -1,6 +1,6 @@
 # Spotify Playlist to MP3
 
--  Fetch tracks from a **Spotify playlist**
+- Fetch tracks from a **Spotify playlist**
 - Search and download the **best matching version from YouTube**
 - Convert the video to **MP3 using FFmpeg**
 - Easily use the app with a **PyQt5 GUI**
@@ -8,10 +8,12 @@
 ## 📦 Features
 
 - PyQt5 GUI interface
-- Concurrent downloads for maximum speed
+- Multi-threaded parallel downloads
+- Chunk-based processing for large playlists
+- Performance statistics and timing
 - MP3 conversion with FFmpeg
 - Auto-retry on failed downloads
-- Progress tracking per song
+- Progress tracking per song and chunk
 - Spotify API integration
 
 ---
@@ -40,7 +42,20 @@ Create a `.env` file in the project root:
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 DEFAULT_DOWNLOAD_DIR=downloads
+NUM_CHUNKS=3  # Optional: Number of parallel chunks
+BATCH_SIZE=5  # Optional: Songs per chunk
 ```
+
+### Performance
+
+The downloader processes songs in parallel chunks:
+- Multiple songs downloaded simultaneously
+- Automatic chunk-based processing
+- Real-time performance statistics:
+  - Total download time
+  - Per-chunk timing
+  - Songs per minute rate
+  - Average chunk processing time
 
 ## Usage
 

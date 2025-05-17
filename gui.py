@@ -18,12 +18,12 @@ class DownloaderApp(QWidget):
         layout = QVBoxLayout()
 
         # Playlist input
-        layout.addWidget(QLabel("Spotify Playlist URL (optional):"))
+        layout.addWidget(QLabel("Spotify Playlist URL:"))
         self.url_input = QLineEdit()
         layout.addWidget(self.url_input)
 
         # Demo mode checkbox
-        self.demo_checkbox = QCheckBox("Use demo playlist (no Spotify needed)")
+        self.demo_checkbox = QCheckBox("Use demo playlist(testing only 20 tracks)")
         self.demo_checkbox.setChecked(False)
         layout.addWidget(self.demo_checkbox)
 
@@ -32,7 +32,7 @@ class DownloaderApp(QWidget):
         quality_layout.addWidget(QLabel("Audio Quality:"))
         self.quality_dropdown = QComboBox()
         self.quality_dropdown.addItems(["128", "192", "320"])
-        self.quality_dropdown.setCurrentText("192")
+        self.quality_dropdown.setCurrentText("320")
         quality_layout.addWidget(self.quality_dropdown)
         layout.addLayout(quality_layout)
 
@@ -81,7 +81,7 @@ class DownloaderApp(QWidget):
 
     def on_done(self):
         self.start_button.setEnabled(True)
-        self.append_log("✅ Download complete!")
+        self.append_log("Download complete!")
 
     def start_download(self):
         self.clear_log()

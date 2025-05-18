@@ -34,6 +34,63 @@ cd SPOT-PLIST
 pip install -r requirements.txt
 ```
 
+## 📥 Complete Installation Guide
+
+### 1. Install Python Dependencies
+```bash
+# Create and activate virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install all requirements
+pip install -r requirements.txt
+```
+
+### 2. Install FFmpeg
+
+#### Windows:
+1. Download FFmpeg from https://ffmpeg.org/download.html
+2. Extract the archive
+3. Add FFmpeg's bin folder to System PATH
+4. Verify installation: `ffmpeg -version`
+
+#### macOS:
+```bash
+brew install ffmpeg
+```
+
+#### Linux (Ubuntu/Debian):
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+### 3. Configure Spotify API
+1. Go to https://developer.spotify.com/dashboard
+2. Create a new app
+3. Copy the Client ID and Client Secret
+4. Create a `.env` file in project root:
+```env
+SPOTIFY_CLIENT_ID=your_client_id_here
+SPOTIFY_CLIENT_SECRET=your_secret_here
+DEFAULT_DOWNLOAD_DIR=downloads
+```
+
+### 4. Run the Application
+```bash
+python main.py
+```
+
+## ✅ Verify Installation
+
+Run these commands to verify all components are installed:
+```bash
+python -c "import yt_dlp; print('yt-dlp: OK')"
+python -c "import spotipy; print('spotipy: OK')"
+python -c "import PyQt5; print('PyQt5: OK')"
+ffmpeg -version
+```
+
 ### 3. Configuration
 
 Create a `.env` file in the project root:

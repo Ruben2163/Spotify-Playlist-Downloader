@@ -87,17 +87,35 @@ class DownloaderApp(QWidget):
         self.clear_log()
         self.start_button.setEnabled(False)
 
+        # Validate and create download directory
+        self.download_dir = self.folder_path_display.text()
+        if not os.path.exists(self.download_dir):
+            try:
+                os.makedirs(self.download_dir)
+                self.append_log(f"Created download directory: {self.download_dir}")
+            except Exception as e:
+                self.append_log(f"❌ Error creating download directory: {e}")
+                self.start_button.setEnabled(True)
+                return
+
         playlist_url = self.url_input.text().strip()
         quality = self.quality_dropdown.currentText()
-        self.download_dir = self.folder_path_display.text()
 
         if self.demo_checkbox.isChecked():
             thread = threading.Thread(target=process_demo_playlist, args=(quality, self.download_dir))
         else:
+            # Validate Spotify URL
             if not playlist_url:
                 self.append_log("❗ Please enter a Spotify playlist URL.")
                 self.start_button.setEnabled(True)
                 return
+            
+            if not ('spotify.com/playlist/' in playlist_url or 'spotify.com/album/' in playlist_url):
+                self.append_log("❗ Invalid Spotify URL. Please enter a valid playlist or album URL.")
+                self.start_button.setEnabled(True)
+                return
+
             thread = threading.Thread(target=process_spotify_playlist, args=(playlist_url, quality, self.download_dir))
 
+        thread.daemon = True  # Make thread daemon so it closes with the app
         thread.start()

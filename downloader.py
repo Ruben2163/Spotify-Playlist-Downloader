@@ -213,11 +213,27 @@ class BatchDownloader:
 
 def process_spotify_playlist(playlist_url, quality, output_dir):
     try:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
         total_start = time.time()
-        signals.log_signal.emit("Fetching playlist from Spotify...")
-        tracks = get_playlist_tracks(playlist_url)
-        signals.log_signal.emit(f"Found {len(tracks)} tracks.")
+        signals.log_signal.emit("🎵 Fetching playlist from Spotify...")
         
+        # Extract playlist ID from URL
+        playlist_id = playlist_url.split('/')[-1].split('?')[0]
+        
+        try:
+            tracks = get_playlist_tracks(playlist_id)
+        except Exception as e:
+            signals.log_signal.emit(f"❌ Failed to fetch playlist: {str(e)}")
+            return
+            
+        signals.log_signal.emit(f"✅ Found {len(tracks)} tracks")
+        
+        if not tracks:
+            signals.log_signal.emit("❌ No tracks found in playlist")
+            return
+            
         batch_downloader = BatchDownloader(num_chunks=3, batch_size=5)
         chunks = batch_downloader.split_into_chunks(tracks)
         

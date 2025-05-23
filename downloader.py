@@ -3,6 +3,7 @@ import re
 import shutil
 import time
 import requests
+import csv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -22,6 +23,39 @@ def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "_", name)
 
 
+def save_playlist_to_csv(tracks, output_dir):
+    csv_path = Path(output_dir) / "playlist.csv"
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['name', 'artist', 'album', 'thumbnail_url', 'search_query', 'downloaded'])
+        writer.writeheader()
+        for track in tracks:
+            track['downloaded'] = False
+            writer.writerow(track)
+    return csv_path
+
+
+def load_playlist_from_csv(csv_path):
+    tracks = []
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            row['downloaded'] = row['downloaded'].lower() == 'true'
+            tracks.append(row)
+    return tracks
+
+
+def update_track_status(csv_path, track_name, downloaded=True):
+    tracks = load_playlist_from_csv(csv_path)
+    for track in tracks:
+        if track['name'] == track_name:
+            track['downloaded'] = downloaded
+    
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['name', 'artist', 'album', 'thumbnail_url', 'search_query', 'downloaded'])
+        writer.writeheader()
+        writer.writerows(tracks)
+
+
 def check_ffmpeg():
     if not shutil.which("ffmpeg"):
         raise EnvironmentError("ffmpeg not found. Please install ffmpeg and ensure it's in your system PATH.")
@@ -31,6 +65,7 @@ def check_ffmpeg():
 class SignalHandler(QObject):
     log_signal = pyqtSignal(str)
     done_signal = pyqtSignal()
+    batch_complete_signal = pyqtSignal()
 
 
 signals = SignalHandler()
@@ -45,11 +80,19 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
 
 # ========== Download Logic ==========
 @backoff.on_exception(backoff.expo, Exception, max_tries=3)
-def download_from_youtube(track_info, quality, output_dir):
+def download_from_youtube(track_info, quality, output_dir, csv_path=None):
     check_ffmpeg()
 
     output_dir = Path(output_dir).expanduser().resolve()
     sanitized_name = sanitize_filename(track_info['search_query'])
+
+    # Skip if already downloaded
+    final_name = f"{sanitized_name}.mp3"
+    if (output_dir / final_name).exists():
+        signals.log_signal.emit(f"⏩ Skipping already downloaded: {track_info['name']}")
+        if csv_path:
+            update_track_status(csv_path, track_info['name'])
+        return True
 
     ydl_opts = {
         'format': 'bestaudio/best[ext=m4a]',
@@ -184,27 +227,41 @@ def process_demo_playlist(quality, output_dir):
 
 # ========== Batch Download Manager ==========
 class BatchDownloader:
-    def __init__(self, num_chunks=3, batch_size=5):
-        self.num_chunks = num_chunks
+    def __init__(self, batch_size=200, delay_minutes=5):
         self.batch_size = batch_size
+        self.delay_minutes = delay_minutes
         self.chunk_times = {}
 
-    def split_chunks(self, tracks):
-        chunk_size = max(1, len(tracks) // self.num_chunks)
-        return [tracks[i:i + chunk_size] for i in range(0, len(tracks), chunk_size)]
+    def process_tracks(self, tracks, quality, output_dir):
+        csv_path = save_playlist_to_csv(tracks, output_dir)
+        remaining_tracks = load_playlist_from_csv(csv_path)
+        remaining_tracks = [t for t in remaining_tracks if not t['downloaded']]
+        
+        total_batches = (len(remaining_tracks) + self.batch_size - 1) // self.batch_size
+        signals.log_signal.emit(f"📦 Processing {len(remaining_tracks)} tracks in {total_batches} batches")
 
-    def process_chunk(self, chunk, quality, output_dir, chunk_id):
-        start = time.time()
-        signals.log_signal.emit(f"🔄 Processing chunk {chunk_id + 1}")
-        with ThreadPoolExecutor(max_workers=self.batch_size) as executor:
-            results = list(executor.map(
-                lambda track: download_from_youtube(track, quality, output_dir),
-                chunk
-            ))
-        duration = time.time() - start
-        self.chunk_times[chunk_id] = duration
-        print(f"Chunk {chunk_id + 1} finished in {duration:.2f} sec")
-        return results
+        for batch_num, i in enumerate(range(0, len(remaining_tracks), self.batch_size), 1):
+            batch = remaining_tracks[i:i + self.batch_size]
+            signals.log_signal.emit(f"🔄 Starting batch {batch_num}/{total_batches}")
+            
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                futures = [
+                    executor.submit(download_from_youtube, track, quality, output_dir, csv_path)
+                    for track in batch
+                ]
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        signals.log_signal.emit(f"❌ Download error: {e}")
+
+            signals.log_signal.emit(f"✅ Completed batch {batch_num}/{total_batches}")
+            signals.batch_complete_signal.emit()
+            
+            if batch_num < total_batches:
+                delay = self.delay_minutes * 60
+                signals.log_signal.emit(f"⏳ Waiting {self.delay_minutes} minutes before next batch...")
+                time.sleep(delay)
 
 
 # ========== Main Playlist Handler ==========
@@ -227,24 +284,6 @@ def process_spotify_playlist(playlist_url, quality, output_dir):
 
     signals.log_signal.emit(f"✅ Found {len(tracks)} tracks")
 
-    downloader = BatchDownloader(num_chunks=3, batch_size=5)
-    chunks = downloader.split_chunks(tracks)
-
-    total_start = time.time()
-    with ThreadPoolExecutor(max_workers=downloader.num_chunks) as executor:
-        futures = [
-            executor.submit(downloader.process_chunk, chunk, quality, output_dir, i)
-            for i, chunk in enumerate(chunks)
-        ]
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                signals.log_signal.emit(f"Chunk error: {e}")
-
-    total_time = time.time() - total_start
-    print("\nDownload Stats")
-    print(f"⏱ Total time: {total_time:.2f} sec")
-    print(f"📦 Avg chunk time: {sum(downloader.chunk_times.values()) / len(downloader.chunk_times):.2f} sec")
-    print(f"🎶 Songs per minute: {(len(tracks) / (total_time / 60)):.1f}")
+    downloader = BatchDownloader(batch_size=200, delay_minutes=5)
+    downloader.process_tracks(tracks, quality, output_dir)
     signals.done_signal.emit()

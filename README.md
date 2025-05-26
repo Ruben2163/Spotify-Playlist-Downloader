@@ -5,12 +5,9 @@
 - Convert the video to **MP3 using FFmpeg**
 - Easily use the app with a **PyQt5 GUI**
 
-## 📦 Features
+## Features
 
 - PyQt5 GUI interface
-- Multi-threaded parallel downloads
-- Chunk-based processing for large playlists
-- Performance statistics and timing
 - MP3 conversion with FFmpeg
 - Auto-retry on failed downloads
 - Progress tracking per song and chunk
@@ -18,7 +15,7 @@
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Requirements
 
@@ -29,8 +26,8 @@
 ### 2. Installation
 
 ```bash
-git clone https://git.rubenphagura.com/SPOT-PLIST
-cd SPOT-PLIST
+git clone https://git.rubenphagura.com/Spotify-Playlist-Downloader
+cd Spotify-playlist-downloader
 pip install -r requirements.txt
 ```
 
@@ -38,11 +35,6 @@ pip install -r requirements.txt
 
 ### 1. Install Python Dependencies
 ```bash
-# Create and activate virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install all requirements
 pip install -r requirements.txt
 ```
 
@@ -79,16 +71,6 @@ DEFAULT_DOWNLOAD_DIR=downloads
 ### 4. Run the Application
 ```bash
 python main.py
-```
-
-## ✅ Verify Installation
-
-Run these commands to verify all components are installed:
-```bash
-python -c "import yt_dlp; print('yt-dlp: OK')"
-python -c "import spotipy; print('spotipy: OK')"
-python -c "import PyQt5; print('PyQt5: OK')"
-ffmpeg -version
 ```
 
 ### 3. Configuration

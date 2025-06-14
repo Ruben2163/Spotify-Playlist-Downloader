@@ -1,10 +1,5 @@
 # Spotify Playlist to MP3
 
-- Fetch tracks from a **Spotify playlist**
-- Search and download the **best matching version from YouTube**
-- Convert the video to **MP3 using FFmpeg**
-- Easily use the app with a **PyQt5 GUI**
-
 ## Features
 
 - PyQt5 GUI interface

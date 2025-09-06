@@ -7,7 +7,6 @@
 - Auto-retry on failed downloads
 - Progress tracking per song and chunk
 - Spotify API integration
-
 ---
 
 ## Getting Started

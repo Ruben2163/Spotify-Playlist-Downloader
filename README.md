@@ -23,11 +23,6 @@ pip install -r requirements.txt
 brew install ffmpeg
 ```
 
-#### Linux (Ubuntu/Debian):
-```bash
-sudo apt update
-sudo apt install ffmpeg
-```
 
 ### 3. Configure Spotify API
 1. Go to https://developer.spotify.com/dashboard
@@ -44,25 +39,6 @@ DEFAULT_DOWNLOAD_DIR=downloads
 ```bash
 python main.py
 ```
-
-### 3. Configuration
-
-Create a `.env` file in the project root:
-
-```env
-SPOTIFY_CLIENT_ID=your_spotify_client_id
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-DEFAULT_DOWNLOAD_DIR=downloads
-NUM_CHUNKS=3  # Optional: Number of parallel chunks
-BATCH_SIZE=5  # Optional: Songs per chunk
-```
-
-### 4. Spotify Setup
-
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new application
-3. Copy your Client ID and Client Secret
-4. Paste them in your `.env` file
 
 ### Using with Spotify
 

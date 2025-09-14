@@ -1,10 +1,12 @@
 # Spotify Playlist to MP3
 
-ll
 ## Installation Guide
 
 ### 1. Install Python Dependencies
+
+
 ```bash
+git clone https://github.com/ruben2163/spotify-playlist-downloader
 pip install -r requirements.txt
 ```
 

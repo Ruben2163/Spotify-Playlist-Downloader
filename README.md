@@ -1,31 +1,7 @@
 # Spotify Playlist to MP3
 
-## Features
-
-- PyQt5 GUI interface
-- MP3 conversion with FFmpeg
-- Auto-retry on failed downloads
-- Progress tracking per song and chunk
-- Spotify API integration
----
-
-## Getting Started
-
-### 1. Requirements
-
-- Python 3.8 or higher
-- FFmpeg installed and in PATH
-- Spotify Developer account
-
-### 2. Installation
-
-```bash
-git clone https://git.rubenphagura.com/Spotify-Playlist-Downloader
-cd Spotify-playlist-downloader
-pip install -r requirements.txt
-```
-
-## 📥 Complete Installation Guide
+ll
+## Installation Guide
 
 ### 1. Install Python Dependencies
 ```bash

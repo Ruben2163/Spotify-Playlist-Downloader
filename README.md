@@ -4,7 +4,6 @@
 
 ### 1. Install Python Dependencies
 
-
 ```bash
 git clone https://github.com/ruben2163/spotify-playlist-downloader
 pip install -r requirements.txt

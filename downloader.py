@@ -15,7 +15,7 @@ import backoff
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 
-from config import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, DEFAULT_DOWNLOAD_DIR
+from config import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, DEFAULT_DOWNLOAD_DIR, YOUTUBE_COOKIES_FILE
 
 
 # ========== Utility ==========
@@ -109,6 +109,13 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
         'socket_timeout': 10,
         'no_warnings': True,
     }
+    
+    # Add cookie support if cookies file exists
+    if Path(YOUTUBE_COOKIES_FILE).exists():
+        ydl_opts['cookiefile'] = YOUTUBE_COOKIES_FILE
+        signals.log_signal.emit(f"Using cookies from: {YOUTUBE_COOKIES_FILE}")
+    else:
+        signals.log_signal.emit(f"⚠ Cookie file not found: {YOUTUBE_COOKIES_FILE}. YouTube may block downloads.")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         signals.log_signal.emit(f"🎵 Downloading: {track_info['search_query']}")

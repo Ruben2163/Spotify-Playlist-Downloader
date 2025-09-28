@@ -34,7 +34,31 @@ SPOTIFY_CLIENT_SECRET=your_secret_here
 DEFAULT_DOWNLOAD_DIR=downloads
 ```
 
-### 4. Run the Application
+l### 4. Configure YouTube Cookies (Important!)
+
+YouTube has bot detection that may block downloads. To bypass this:
+
+```bash
+# Run the cookie extractor helper
+python extract_cookies.py
+```
+
+Follow the instructions to extract cookies from your browser. You can also use yt-dlp's built-in browser support:
+
+```bash
+# Extract cookies from Chrome (recommended)
+yt-dlp --cookies-from-browser chrome --cookies youtube_cookies.txt youtube.com
+
+# Or from Firefox
+yt-dlp --cookies-from-browser firefox --cookies youtube_cookies.txt youtube.com
+```
+
+**Alternative:** Install browser-cookie3 for automatic cookie extraction:
+```bash
+pip install browser-cookie3
+```
+
+### 5. Run the Application
 ```bash
 python main.py
 ```
@@ -69,3 +93,34 @@ The downloader processes songs in parallel chunks:
   - Per-chunk timing
   - Songs per minute rate
   - Average chunk processing time
+
+### Troubleshooting
+
+#### YouTube Bot Detection Errors
+If you see errors like "Sign in to confirm you're not a bot":
+
+1. **Extract cookies from your browser:**
+   ```bash
+   python extract_cookies.py
+   ```
+
+2. **Use yt-dlp's browser cookie support:**
+   ```bash
+   yt-dlp --cookies-from-browser chrome --cookies youtube_cookies.txt youtube.com
+   ```
+
+3. **Install browser-cookie3 for automatic extraction:**
+   ```bash
+   pip install browser-cookie3
+   ```
+
+4. **Manual cookie export:**
+   - Use browser extensions like "Get cookies.txt"
+   - Export cookies from YouTube.com
+   - Save as `youtube_cookies.txt`
+
+#### Common Issues
+- **FFmpeg not found:** Install FFmpeg and add to PATH
+- **Spotify API errors:** Check your Client ID and Secret in `.env`
+- **Download failures:** Ensure you have a stable internet connection
+- **Cookie expiration:** Refresh cookies periodically as they expire

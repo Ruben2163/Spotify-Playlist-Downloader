@@ -95,7 +95,7 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
         return True
 
     ydl_opts = {
-        'format': 'bestaudio/best[ext=m4a]',
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'outtmpl': str(output_dir / f"{sanitized_name}.%(ext)s"),
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',

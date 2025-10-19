@@ -90,7 +90,7 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
     # Skip if already downloaded
     final_name = f"{sanitized_name}.mp3"
     if (output_dir / final_name).exists():
-        signals.log_signal.emit(f"⏩ Skipping already downloaded: {track_info['name']}")
+        signals.log_signal.emit(f"Skipping already downloaded: {track_info['name']}")
         if csv_path:
             update_track_status(csv_path, track_info['name'])
         return True
@@ -112,7 +112,7 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        signals.log_signal.emit(f"🎵 Downloading: {track_info['search_query']}")
+        signals.log_signal.emit(f"Downloading: {track_info['search_query']}")
         search = ydl.extract_info(f"ytsearch:{track_info['search_query']}", download=False)
         if not search or not search.get('entries'):
             raise Exception("No YouTube search results found")
@@ -172,9 +172,9 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
                             elif ext in ('.jpg', '.jpeg'):
                                 thumbnail_mime = 'image/jpeg'
                         else:
-                            signals.log_signal.emit(f"⚠ Artwork path not found or invalid: {thumb}")
+                            signals.log_signal.emit(f"Artwork path not found or invalid: {thumb}")
                 except Exception as e:
-                    signals.log_signal.emit(f"⚠ Failed to load artwork: {e}")
+                    signals.log_signal.emit(f"Failed to load artwork: {e}")
 
             # Try falling back to YouTube thumbnail if none provided/loaded
             if not thumbnail_data and isinstance(info, dict):
@@ -197,7 +197,7 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
                         if response.headers.get('Content-Type'):
                             thumbnail_mime = response.headers.get('Content-Type')
                     except Exception as e:
-                        signals.log_signal.emit(f"⚠ Failed to fetch YouTube artwork: {e}")
+                        signals.log_signal.emit(f"Failed to fetch YouTube artwork: {e}")
 
             # Fallback to a tiny 1x1 PNG to avoid missing artwork when desired file isn't available
             if not thumbnail_data:
@@ -218,14 +218,14 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
                     desc='Cover',
                     data=thumbnail_data
                 ))
-                signals.log_signal.emit(f"🖼 Added artwork to: {track_info['name']}")
+                signals.log_signal.emit(f"Added artwork to: {track_info['name']}")
             else:
-                signals.log_signal.emit(f"⚠ No artwork found for: {track_info['name']}")
+                signals.log_signal.emit(f"No artwork found for: {track_info['name']}")
 
             audio.save(v2_version=3)
 
         except Exception as e:
-            signals.log_signal.emit(f"❌ Metadata error for {track_info['name']}: {e}")
+            signals.log_signal.emit(f"Metadata error for {track_info['name']}: {e}")
 
     return True
 
@@ -298,12 +298,12 @@ DEMO_TRACKS = [
 ]
 
 def process_demo_playlist(quality, output_dir):
-    signals.log_signal.emit("🎧 Using demo playlist")
+    signals.log_signal.emit("Using demo playlist")
     for track in DEMO_TRACKS:
         try:
             download_from_youtube(track, quality, output_dir)
         except Exception as e:
-            signals.log_signal.emit(f"❌ Demo download error for {track.get('name', 'Unknown')}: {e}")
+            signals.log_signal.emit(f"Demo download error for {track.get('name', 'Unknown')}: {e}")
     signals.done_signal.emit()
 
 
@@ -320,11 +320,11 @@ class BatchDownloader:
         remaining_tracks = [t for t in remaining_tracks if not t['downloaded']]
         
         total_batches = (len(remaining_tracks) + self.batch_size - 1) // self.batch_size
-        signals.log_signal.emit(f"📦 Processing {len(remaining_tracks)} tracks in {total_batches} batches")
+        signals.log_signal.emit(f"Processing {len(remaining_tracks)} tracks in {total_batches} batches")
 
         for batch_num, i in enumerate(range(0, len(remaining_tracks), self.batch_size), 1):
             batch = remaining_tracks[i:i + self.batch_size]
-            signals.log_signal.emit(f"🔄 Starting batch {batch_num}/{total_batches}")
+            signals.log_signal.emit(f"Starting batch {batch_num}/{total_batches}")
             
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = [
@@ -335,14 +335,14 @@ class BatchDownloader:
                     try:
                         future.result()
                     except Exception as e:
-                        signals.log_signal.emit(f"❌ Download error: {e}")
+                        signals.log_signal.emit(f"Download error: {e}")
 
-            signals.log_signal.emit(f"✅ Completed batch {batch_num}/{total_batches}")
+            signals.log_signal.emit(f"Completed batch {batch_num}/{total_batches}")
             signals.batch_complete_signal.emit()
             
             if batch_num < total_batches:
                 delay = self.delay_minutes * 60
-                signals.log_signal.emit(f"⏳ Waiting {self.delay_minutes} minutes before next batch...")
+                signals.log_signal.emit(f"Waiting {self.delay_minutes} minutes before next batch...")
                 time.sleep(delay)
 
 
@@ -353,7 +353,7 @@ def process_spotify_playlist(playlist_or_album_url, quality, output_dir):
 
     is_album = 'spotify.com/album/' in playlist_or_album_url or '/album/' in playlist_or_album_url
     entity = 'album' if is_album else 'playlist'
-    signals.log_signal.emit(f"📡 Fetching Spotify {entity}...")
+    signals.log_signal.emit(f"Fetching Spotify {entity}...")
 
     # Extract ID from URL
     entity_id = playlist_or_album_url.split('/')[-1].split('?')[0]
@@ -361,14 +361,14 @@ def process_spotify_playlist(playlist_or_album_url, quality, output_dir):
     try:
         tracks = get_album_tracks(entity_id) if is_album else get_playlist_tracks(entity_id)
     except Exception as e:
-        signals.log_signal.emit(f"❌ Failed to load {entity}: {e}")
+        signals.log_signal.emit(f"Failed to load {entity}: {e}")
         return
 
     if not tracks:
-        signals.log_signal.emit("⚠ No tracks found.")
+        signals.log_signal.emit("No tracks found.")
         return
 
-    signals.log_signal.emit(f"✅ Found {len(tracks)} tracks")
+    signals.log_signal.emit(f"Found {len(tracks)} tracks")
 
     downloader = BatchDownloader(batch_size=200, delay_minutes=5)
     downloader.process_tracks(tracks, quality, output_dir)

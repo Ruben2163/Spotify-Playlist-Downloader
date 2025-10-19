@@ -1,10 +1,7 @@
 PyQt5>=5.15.0
-yt-dlp>=2023.3.4
-spotipy>=2.23.0
-python-dotenv>=1.0.0
+yt-dlp>=2024.8.6
+spotipy>=2.24.0
+python-dotenv>=1.0.1
 backoff>=2.2.1
-mutagen>=1.46.0
-requests>=2.31.0
-FFmpeg-python>=0.2.0
-Pillow>=10.0.0
-tqdm>=4.65.0
+mutagen>=1.47.0
+requests>=2.32.3

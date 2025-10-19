@@ -1,4 +1,5 @@
 from pathlib import Path
+import base64
 import re
 import shutil
 import time
@@ -15,7 +16,7 @@ import backoff
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 
-from config import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, DEFAULT_DOWNLOAD_DIR
+from config import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 
 
 # ========== Utility ==========
@@ -144,22 +145,75 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
             audio.tags.add(TPE1(encoding=3, text=track_info['artist']))
             audio.tags.add(TALB(encoding=3, text=track_info['album']))
 
-            # Determine the correct thumbnail source
+            # Determine the correct thumbnail source (supports http(s) and local file paths)
             thumbnail_data = None
-            if 'thumbnail_data' in track_info:
+            thumbnail_mime = 'image/jpeg'
+            if 'thumbnail_data' in track_info and track_info['thumbnail_data']:
                 thumbnail_data = track_info['thumbnail_data']
             elif 'thumbnail_url' in track_info and track_info['thumbnail_url']:
+                thumb = track_info['thumbnail_url']
                 try:
-                    response = requests.get(track_info['thumbnail_url'], timeout=10)
-                    response.raise_for_status()
-                    thumbnail_data = response.content
+                    if isinstance(thumb, str) and (thumb.startswith('http://') or thumb.startswith('https://')):
+                        response = requests.get(thumb, timeout=10)
+                        response.raise_for_status()
+                        thumbnail_data = response.content
+                        # best guess for remote images
+                        if response.headers.get('Content-Type'):
+                            thumbnail_mime = response.headers.get('Content-Type')
+                    else:
+                        thumb_path = Path(thumb)
+                        if thumb_path.exists() and thumb_path.is_file():
+                            with open(thumb_path, 'rb') as f:
+                                thumbnail_data = f.read()
+                            # Set mime from extension if possible
+                            ext = thumb_path.suffix.lower()
+                            if ext == '.png':
+                                thumbnail_mime = 'image/png'
+                            elif ext in ('.jpg', '.jpeg'):
+                                thumbnail_mime = 'image/jpeg'
+                        else:
+                            signals.log_signal.emit(f"⚠ Artwork path not found or invalid: {thumb}")
                 except Exception as e:
-                    signals.log_signal.emit(f"⚠ Failed to download artwork: {e}")
+                    signals.log_signal.emit(f"⚠ Failed to load artwork: {e}")
+
+            # Try falling back to YouTube thumbnail if none provided/loaded
+            if not thumbnail_data and isinstance(info, dict):
+                yt_thumb = info.get('thumbnail')
+                if not yt_thumb:
+                    thumbs = info.get('thumbnails') or []
+                    if isinstance(thumbs, list) and thumbs:
+                        try:
+                            yt_thumb = sorted(
+                                thumbs,
+                                key=lambda t: ((t.get('height') or 0) * (t.get('width') or 0))
+                            )[-1].get('url')
+                        except Exception:
+                            yt_thumb = thumbs[-1].get('url') if isinstance(thumbs[-1], dict) else None
+                if yt_thumb:
+                    try:
+                        response = requests.get(yt_thumb, timeout=10)
+                        response.raise_for_status()
+                        thumbnail_data = response.content
+                        if response.headers.get('Content-Type'):
+                            thumbnail_mime = response.headers.get('Content-Type')
+                    except Exception as e:
+                        signals.log_signal.emit(f"⚠ Failed to fetch YouTube artwork: {e}")
+
+            # Fallback to a tiny 1x1 PNG to avoid missing artwork when desired file isn't available
+            if not thumbnail_data:
+                try:
+                    tiny_png_base64 = (
+                        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAucB9Ue0mD0AAAAASUVORK5CYII='
+                    )
+                    thumbnail_data = base64.b64decode(tiny_png_base64)
+                    thumbnail_mime = 'image/png'
+                except Exception:
+                    thumbnail_data = None
 
             if thumbnail_data:
                 audio.tags.add(APIC(
                     encoding=3,
-                    mime='image/jpeg',
+                    mime=thumbnail_mime,
                     type=3,
                     desc='Cover',
                     data=thumbnail_data
@@ -176,14 +230,16 @@ def download_from_youtube(track_info, quality, output_dir, csv_path=None):
     return True
 
 # ========== Spotify Playlist ==========
-def get_playlist_tracks(playlist_url):
+def get_playlist_tracks(playlist_id_or_url):
     if not sp:
         raise ValueError("Spotify client not configured.")
-    results = sp.playlist_tracks(playlist_url)
+    results = sp.playlist_tracks(playlist_id_or_url)
     tracks = []
     while results:
         for item in results['items']:
             track = item['track']
+            if not track:
+                continue
             tracks.append({
                 'name': track['name'],
                 'artist': track['artists'][0]['name'],
@@ -191,7 +247,33 @@ def get_playlist_tracks(playlist_url):
                 'thumbnail_url': track['album']['images'][0]['url'] if track['album']['images'] else None,
                 'search_query': f"{track['name']} {track['artists'][0]['name']}"
             })
-        results = sp.next(results) if results['next'] else None
+        results = sp.next(results) if results and results.get('next') else None
+    return tracks
+
+
+def get_album_tracks(album_id_or_url):
+    if not sp:
+        raise ValueError("Spotify client not configured.")
+    # Fetch album for cover art and name
+    album = sp.album(album_id_or_url)
+    album_name = album.get('name')
+    album_images = album.get('images') or []
+    album_cover = album_images[0]['url'] if album_images else None
+
+    results = sp.album_tracks(album_id_or_url)
+    tracks = []
+    while results:
+        for item in results['items']:
+            artists = item['artists']
+            primary_artist = artists[0]['name'] if artists else ''
+            tracks.append({
+                'name': item['name'],
+                'artist': primary_artist,
+                'album': album_name,
+                'thumbnail_url': album_cover,
+                'search_query': f"{item['name']} {primary_artist}"
+            })
+        results = sp.next(results) if results and results.get('next') else None
     return tracks
 
 
@@ -203,14 +285,14 @@ DEMO_TRACKS = [
         'name': "Hypnotize",
         'artist': "The Notorious B.I.G.",
         'album': "Life After Death",
-        'thumbnail_url': str(BASE_DIR / 'images' / 'test_cover.jpg'),
+        'thumbnail_url': None,  # Let YouTube thumbnail be used
         'search_query': "Hypnotize The Notorious B.I.G."
     },
     {
         'name': "Still D.R.E.",
         'artist': "Dr. Dre ft. Snoop Dogg",
         'album': "2001",
-        'thumbnail_url': str(BASE_DIR / 'images' / 'test_cover.jpg'),
+        'thumbnail_url': None,  # Let YouTube thumbnail be used
         'search_query': "Still D.R.E. Dr. Dre Snoop Dogg"
     },
 ]
@@ -218,10 +300,10 @@ DEMO_TRACKS = [
 def process_demo_playlist(quality, output_dir):
     signals.log_signal.emit("🎧 Using demo playlist")
     for track in DEMO_TRACKS:
-        if track['thumbnail_url'] and Path(track['thumbnail_url']).exists():
-            with open(track['thumbnail_url'], 'rb') as img:
-                track['thumbnail_data'] = img.read()
-        download_from_youtube(track, quality, output_dir)
+        try:
+            download_from_youtube(track, quality, output_dir)
+        except Exception as e:
+            signals.log_signal.emit(f"❌ Demo download error for {track.get('name', 'Unknown')}: {e}")
     signals.done_signal.emit()
 
 
@@ -265,17 +347,21 @@ class BatchDownloader:
 
 
 # ========== Main Playlist Handler ==========
-def process_spotify_playlist(playlist_url, quality, output_dir):
+def process_spotify_playlist(playlist_or_album_url, quality, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    signals.log_signal.emit("📡 Fetching Spotify playlist...")
-    playlist_id = playlist_url.split('/')[-1].split('?')[0]
+    is_album = 'spotify.com/album/' in playlist_or_album_url or '/album/' in playlist_or_album_url
+    entity = 'album' if is_album else 'playlist'
+    signals.log_signal.emit(f"📡 Fetching Spotify {entity}...")
+
+    # Extract ID from URL
+    entity_id = playlist_or_album_url.split('/')[-1].split('?')[0]
 
     try:
-        tracks = get_playlist_tracks(playlist_id)
+        tracks = get_album_tracks(entity_id) if is_album else get_playlist_tracks(entity_id)
     except Exception as e:
-        signals.log_signal.emit(f"❌ Failed to load playlist: {e}")
+        signals.log_signal.emit(f"❌ Failed to load {entity}: {e}")
         return
 
     if not tracks:

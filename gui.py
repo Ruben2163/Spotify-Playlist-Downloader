@@ -35,7 +35,7 @@ class DownloaderApp(QWidget):
         self.url_input.setFixedHeight(35)
         
         # Demo mode checkbox
-        self.demo_checkbox = QCheckBox("Use demo playlist (testing only 20 tracks)")
+        self.demo_checkbox = QCheckBox("Use demo playlist (testing only)")
         self.demo_checkbox.setChecked(False)
         
         # Quality selector
@@ -150,8 +150,6 @@ class DownloaderApp(QWidget):
                 border-radius: 5px;
                 padding: 8px 20px;
                 font-size: 12pt;
-                cursor: pointer;
-                transition: all 0.3s ease;
             }
             
             QPushButton:hover {
